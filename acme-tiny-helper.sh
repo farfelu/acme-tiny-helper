@@ -4,14 +4,14 @@
 cd "$(dirname "$0")"
 
 # check if acme-tiny exists
-if [ ! -e acme-tiny/acme_tiny.py ]
+if [[ ! -e acme-tiny/acme_tiny.py ]]
 then
     echo acme tiny not found
     echo get it from https://github.com/diafygi/acme-tiny
     exit 1
 fi
 
-if [ ! -e config.cfg ]
+if [[ ! -e config.cfg ]]
 then
     echo no config.cfg file found
     exit 1
@@ -39,7 +39,7 @@ accountfile=keys/account.key
 haserror=0
 
 # if no account private key is found, generate one
-if [ ! -e $accountfile ]
+if [[ ! -e $accountfile ]]
 then
     echo no account private key found. generating $accountfile
     openssl genrsa $KEYSIZE > $accountfile
@@ -73,7 +73,7 @@ do
     mkdir -p $certdir 2> /dev/null
     
     # if we don't have a private key for this domain yet, create one
-    if [ ! -e $keyfile ]
+    if [[ ! -e $keyfile ]]
     then
         echo no domain private key found. generating $keyfile
         openssl genrsa $KEYSIZE > $keyfile
