@@ -20,11 +20,6 @@ fi
 # load config variables
 . config.cfg
 
-# create directories where stuff is stored
-mkdir keys 2> /dev/null
-mkdir requests 2> /dev/null
-mkdir certificates 2> /dev/null
-
 # check if we are using the staging server, otherwise use default of acme-tiny
 CA=
 if [[ $USESTAGING -eq 1 ]]
@@ -35,7 +30,13 @@ then
     CA="--ca https://acme-staging.api.letsencrypt.org"
 fi
 
-accountfile=keys/account.key
+
+# directory to store account related stuff like the account private key
+mkdir account 2> /dev/null
+# directory to store certificates
+mkdir certificates 2> /dev/null
+
+accountfile=account/account.key
 haserror=0
 
 # if no account private key is found, generate one
@@ -49,6 +50,14 @@ fi
 echo download letsencrypt certificate for chaining
 wget -O - https://letsencrypt.org/certs/lets-encrypt-x1-cross-signed.pem > intermediate.pem
 
+# function to check for expiry date
+# returns days until it expires
+function days_until_expiry {
+    local expiryDate=$(date --date="`openssl x509 -in $1 -noout -dates | grep notAfter= | sed -E 's/notAfter=(.*?)/\1/'`" "+%s")
+    local now=$(date +"%s")
+
+    echo $((($expiryDate - $now) / (24 * 60 * 60)))
+}
 
 # loop through each domain
 for domainlist in "${DOMAINS[@]}"
@@ -66,11 +75,15 @@ do
     echo SAN: ${SAN}
     echo
     
-    keyfile=keys/$domain.key
-    requestfile=requests/$domain.csr
     certdir=certificates/$domain # the first domain name will be used for the directory name where the certificates will be stored
     
     mkdir -p $certdir 2> /dev/null
+    
+    keyfile=$certdir/privkey.key
+    requestfile=$certdir/request.csr
+    certfile=$certdir/cert.pem
+    fullchainfile=$certdir/fullchain.pem
+    
     
     # if we don't have a private key for this domain yet, create one
     if [[ ! -e $keyfile ]]
@@ -79,11 +92,27 @@ do
         openssl genrsa $KEYSIZE > $keyfile
     fi
     
+    # check if a certificate exists
+    # if it does, check how long it'll be valid
+    if [[ -e $certfile ]]
+    then
+        validDays=$(days_until_expiry $certfile)
+        
+        echo valid for $validDays days
+        
+        # if the certificate is valid for longer than 30 (default) days, don't try to renew
+        if [[ $validDays -gt $EXPIRATIONDAYS ]]
+        then
+            echo skipping renew
+            continue
+        fi
+    fi
+    
     echo generate certificate signing request
     openssl req -new -sha256 -key $keyfile -subj "/" -reqexts SAN -config <(cat /etc/ssl/openssl.cnf <(printf "[SAN]\nsubjectAltName=${SAN}")) > $requestfile
     echo
     echo running acme_tiny.py
-    python acme-tiny/acme_tiny.py $CA --account-key $accountfile --csr $requestfile --acme-dir $WEBROOT > $certdir/cert.crt
+    python acme-tiny/acme_tiny.py $CA --account-key $accountfile --csr $requestfile --acme-dir $WEBROOT > $certfile
     
     # check if any errors happened
     if [[ $? -ne 0 ]]
@@ -93,7 +122,7 @@ do
     fi
     
     # create chained certificate by just concatenating them
-    cat $certdir/cert.crt intermediate.pem > $certdir/fullchain.pem
+    cat $certfile intermediate.pem > $fullchainfile
 done
 
 # cleanup
