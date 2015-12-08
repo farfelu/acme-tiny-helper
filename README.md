@@ -10,6 +10,7 @@ see *config.example.cfg*
 
 ## files
 files in *certificates/example.com/*
+
 | file          | description                                                                 |
 |---------------|-----------------------------------------------------------------------------|
 | privkey.key   | private key                                                                 |
