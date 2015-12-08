@@ -1,0 +1,8 @@
+certificates/
+keys/
+requests/
+config.cfg
+*.crt
+*.pem
+*.csr
+*.key
