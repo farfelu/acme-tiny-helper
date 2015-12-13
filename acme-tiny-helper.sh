@@ -94,14 +94,36 @@ do
     
     # check if a certificate exists
     # if it does, check how long it'll be valid
+    # or if a new domain was added
     if [[ -e $certfile ]]
     then
+        requiresRenew=0
+        
         validDays=$(days_until_expiry $certfile)
         
         echo valid for $validDays days
         
         # if the certificate is valid for longer than 30 (default) days, don't try to renew
-        if [[ $validDays -gt $EXPIRATIONDAYS ]]
+        if [[ $validDays -le $EXPIRATIONDAYS ]]
+        then
+            requiresRenew=1
+        fi
+        
+        certOutput=$(openssl x509 -noout -text -in $certfile)
+        
+        # check if each domain is in the certificate
+        for i in $(echo $domainlist | sed 's/\,/ /g')
+        do
+            if $(echo $certOutput | grep -q DNS:${i})
+            then
+                echo ${i} FOUND
+            else
+                echo ${i} NOT FOUND
+                requiresRenew=1
+            fi
+        done
+        
+        if [[ $requiresRenew -eq 0 ]]
         then
             echo skipping renew
             continue
