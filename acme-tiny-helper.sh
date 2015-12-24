@@ -30,6 +30,7 @@ then
     CA="--ca https://acme-staging.api.letsencrypt.org"
 fi
 
+reloadnginx=0
 
 # directory to store account related stuff like the account private key
 mkdir account 2> /dev/null
@@ -145,6 +146,8 @@ do
     
     # create chained certificate by just concatenating them
     cat $certfile intermediate.pem > $fullchainfile
+
+    reloadnginx=1
 done
 
 # cleanup
@@ -157,6 +160,13 @@ then
     echo ERRORS HAPPENED
     echo check above
     exit 1
+fi
+
+if [[ $reloadnginx -ne 0 ]]
+then
+    echo
+    echo reloading nginx
+    nginx -s reload
 fi
 
 echo
