@@ -49,7 +49,7 @@ fi
 
 # nginx requires a full chain
 echo download letsencrypt certificate for chaining
-wget -O - https://letsencrypt.org/certs/lets-encrypt-x1-cross-signed.pem > intermediate.pem
+wget -O - https://letsencrypt.org/certs/lets-encrypt-x3-cross-signed.pem > intermediate.pem
 
 # function to check for expiry date
 # returns days until it expires
@@ -166,7 +166,7 @@ if [[ $reloadnginx -ne 0 ]]
 then
     echo
     echo reloading nginx
-    nginx -s reload
+    /usr/sbin/nginx -s reload
 fi
 
 echo
