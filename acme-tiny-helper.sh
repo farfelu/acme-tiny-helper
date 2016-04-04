@@ -100,6 +100,12 @@ do
     then
         requiresRenew=0
         
+        if [[ $FORCERENEW -eq 1 ]]
+        then
+            echo FORCING RENEW
+            requiresRenew=1
+        fi
+        
         validDays=$(days_until_expiry $certfile)
         
         echo valid for $validDays days
